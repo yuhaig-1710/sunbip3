@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SunBịp VIP - Cyberpunk Gambling Hub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; background: #030509; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; overflow-x: hidden; }
+    .app-container {
+      max-width: 650px; margin: 0 auto; min-height: 100vh;
+      background: rgba(10, 14, 26, 0.95);
+      border-left: 1px solid rgba(0, 240, 255, 0.3); border-right: 1px solid rgba(0, 240, 255, 0.3);
+      display: flex; flex-direction: column; position: relative; box-shadow: 0 0 50px rgba(0, 240, 255, 0.15);
+    }
+    header {
+      padding: 16px 20px; background: rgba(8, 12, 22, 0.9);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(10px);
+    }
+    .brand { font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #fff; }
+    .brand span { color: #00f0ff; text-shadow: 0 0 10px rgba(0, 240, 255, 0.8); }
+    .balance-card {
+      background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.4);
+      padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: bold; color: #00f0ff;
+    }
+    .btn-add {
+      background: #00f0ff; color: #000; border: none; width: 22px; height: 22px;
+      border-radius: 50%; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .banner {
+      margin: 15px 20px; padding: 20px; border-radius: 16px;
+      background: linear-gradient(135deg, rgba(112, 0, 255, 0.4), rgba(0, 240, 255, 0.2));
+      border: 1px solid rgba(0, 240, 255, 0.4); text-align: center; box-shadow: 0 0 20px rgba(112, 0, 255, 0.3);
+    }
+    .banner h2 { font-size: 18px; margin-bottom: 6px; color: #fff; text-shadow: 0 0 8px rgba(0,240,255,0.6); }
+    .banner p { font-size: 12px; color: #8a9ba8; }
+    .games-grid { padding: 10px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; flex: 1; }
+    .game-card {
+      background: rgba(18, 26, 43, 0.8); border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 16px; padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden;
+    }
+    .game-card:hover { transform: translateY(-4px); border-color: #00f0ff; box-shadow: 0 0 25px rgba(0, 240, 255, 0.4); }
+    .game-icon { font-size: 42px; margin-bottom: 10px; }
+    .game-title { font-weight: 800; font-size: 15px; margin-bottom: 4px; color: #fff; }
+    .game-desc { font-size: 11px; color: #7f95a8; }
+    .tag-hot { position: absolute; top: 10px; right: 10px; background: #ff0055; color: #fff; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 6px; }
+    footer { padding: 15px; text-align: center; font-size: 11px; color: #52637a; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #090e1a; border: 2px solid #00f0ff; border-radius: 18px; padding: 24px; width: 90%; max-width: 340px; text-align: center; }
+    .modal-title { font-size: 16px; font-weight: 900; color: #00f0ff; margin-bottom: 12px; }
+    .input-money { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(0,240,255,0.4); background: rgba(0,0,0,0.6); color: #fff; text-align: center; font-size: 16px; font-weight: bold; margin-bottom: 12px; }
+    .quick-bets { display: flex; gap: 6px; justify-content: center; margin-bottom: 15px; }
+    .btn-qb { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
+    .btn-deposit-submit { background: linear-gradient(135deg, #00f0ff, #7000ff); border: none; color: #fff; width: 100%; padding: 12px; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="brand">SUN<span>BỊP</span> VIP</div>
+      <div class="balance-card">
+        <span>💰 <span id="lobby-balance">100,000</span>đ</span>
+        <button class="btn-add" onclick="openDepositModal()">+</button>
+      </div>
+    </header>
+    <div class="banner">
+      <h2>🔥 SẢNH MINI-GAME 🔥</h2>
+      
+    </div>
+    <div class="games-grid">
+      <div class="game-card" onclick="openGame('flight')">
+        <span class="tag-hot">HOT</span>
+        <div class="game-icon">✈️</div>
+        <div class="game-title">CARRIER FLIGHT</div>
+        
+      </div>
+      <div class="game-card" onclick="openGame('taixiu')">
+        <div class="game-icon">🎲</div>
+        <div class="game-title">TÀI XỈU</div>
+        
+      </div>
+      <div class="game-card" onclick="openGame('nohu')">
+        <span class="tag-hot">HŨ BIG</span>
+        <div class="game-icon">🎰</div>
+        <div class="game-title">NỔ HŨ </div>
+        
+      </div>
+    </div>
+ 
+  </div>
+
+  <div class="modal-overlay" id="deposit-modal">
+    <div class="modal-box">
+      <div class="modal-title">💰 NẠP TIỀN SUNBỊP</div>
+      <input type="number" id="deposit-amt" class="input-money" placeholder="Nhập số tiền..." value="1000000">
+      <div class="quick-bets">
+        <button class="btn-qb" onclick="setDepVal(500000)">+500k</button>
+        <button class="btn-qb" onclick="setDepVal(5000000)">+5M</button>
+        <button class="btn-qb" onclick="setDepVal(50000000)">+50M</button>
+      </div>
+      <button class="btn-deposit-submit" onclick="submitDeposit()">XÁC NHẬN NẠP</button>
+    </div>
+  </div>
+
+  <script>
+    function getBalance() {
+      return localStorage.getItem('sunbip_balance') !== null ? parseFloat(localStorage.getItem('sunbip_balance')) : 1000000;
+    }
+    function updateBalanceUI() {
+      document.getElementById('lobby-balance').innerText = Math.floor(getBalance()).toLocaleString();
+    }
+    function openDepositModal() { document.getElementById('deposit-modal').classList.add('active'); }
+    function setDepVal(v) { document.getElementById('deposit-amt').value = v; }
+    function submitDeposit() {
+      let v = parseFloat(document.getElementById('deposit-amt').value);
+      if (!isNaN(v) && v > 0) {
+        localStorage.setItem('sunbip_balance', getBalance() + v);
+        updateBalanceUI();
+        document.getElementById('deposit-modal').classList.remove('active');
+      }
+    }
+    function openGame(g) {
+      if (g === 'flight') location.href = 'flight.html';
+      else if (g === 'taixiu') location.href = 'taixiu.html';
+      else if (g === 'nohu') location.href = 'nohu.html';
+    }
+    updateBalanceUI();
+  </script>
+</body>
+</html>

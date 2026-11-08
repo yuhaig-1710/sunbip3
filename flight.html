@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Carrier Flight: Ultra Cyberpunk Edition</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #030509; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; }
+    #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+    canvas { width: 100%; height: 100%; display: block; background: #030509; }
+
+    .hud-top {
+      position: absolute; top: 15px; left: 15px; right: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+      pointer-events: none; z-index: 10;
+    }
+    .hud-card {
+      background: rgba(8, 14, 26, 0.88); border: 1px solid rgba(0, 240, 255, 0.5);
+      padding: 8px 16px; border-radius: 12px; backdrop-filter: blur(12px);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+      pointer-events: auto;
+    }
+    .hud-label { font-size: 10px; text-transform: uppercase; color: #7f95a8; letter-spacing: 1px; }
+    .hud-value { font-size: 18px; font-weight: 800; color: #00f0ff; font-family: monospace; text-shadow: 0 0 8px rgba(0,240,255,0.6); }
+
+    .btn-back-lobby {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.4);
+      color: #00f0ff; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;
+      transition: all 0.2s; display: inline-block; text-decoration: none;
+    }
+    .btn-back-lobby:hover { background: rgba(0, 240, 255, 0.2); }
+
+    .control-panel {
+      position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%);
+      width: 92%; max-width: 720px; background: rgba(8, 14, 26, 0.94);
+      border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 18px;
+      padding: 12px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; backdrop-filter: blur(14px); z-index: 10; box-shadow: 0 10px 45px rgba(0,0,0,0.95);
+    }
+    .control-group { display: flex; flex-direction: column; gap: 4px; }
+    .control-label { font-size: 10px; color: #00f0ff; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .bet-presets { display: flex; gap: 6px; }
+    .btn-preset {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18);
+      color: #8a9ba8; padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .btn-preset.active {
+      background: rgba(0, 240, 255, 0.25); border-color: #00f0ff; color: #fff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.7); transform: scale(1.05);
+    }
+    .btn-preset.btn-allin {
+      background: linear-gradient(135deg, rgba(255, 0, 85, 0.3), rgba(255, 136, 0, 0.3));
+      border-color: #ff0055; color: #ff0055;
+    }
+    .btn-preset.btn-allin.active {
+      background: linear-gradient(135deg, #ff0055, #ff8800);
+      color: #fff; border-color: #fff;
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.8);
+    }
+
+    .speed-selector { display: flex; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 3px; border: 1px solid rgba(255,255,255,0.15); }
+    .btn-speed {
+      background: transparent; border: none; color: #8a9ba8; padding: 6px 12px;
+      border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s;
+    }
+    .btn-speed.active { background: #00f0ff; color: #000; box-shadow: 0 0 14px rgba(0,240,255,0.8); }
+
+    .btn-main {
+      background: linear-gradient(135deg, #00f0ff, #7000ff); border: none; color: #fff;
+      padding: 14px 30px; border-radius: 12px; font-size: 16px; font-weight: 900;
+      text-transform: uppercase; cursor: pointer; box-shadow: 0 0 25px rgba(0,240,255,0.6);
+      letter-spacing: 1px; transition: transform 0.1s;
+    }
+    .btn-main:active { transform: scale(0.95); }
+
+    .modal-overlay {
+      position: absolute; inset: 0; background: rgba(3,5,9,0.88); backdrop-filter: blur(14px);
+      display: flex; justify-content: center; align-items: center; z-index: 100;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-card {
+      background: #090e1a; border: 2px solid #00f0ff; border-radius: 22px;
+      padding: 32px; text-align: center; max-width: 380px; width: 85%;
+      box-shadow: 0 0 60px rgba(0,240,255,0.35);
+    }
+    .modal-title { font-size: 24px; font-weight: 900; margin-bottom: 8px; text-transform: uppercase; }
+    .modal-title.win { color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.6); }
+    .modal-title.lose { color: #ff0055; text-shadow: 0 0 20px rgba(255,0,85,0.6); }
+    .modal-amount { font-size: 36px; font-weight: bold; font-family: monospace; margin: 15px 0; color: #fff; }
+    .btn-restart {
+      background: #00f0ff; color: #000; border: none; padding: 12px 34px;
+      border-radius: 10px; font-weight: 900; font-size: 15px; cursor: pointer; text-transform: uppercase;
+      box-shadow: 0 0 15px rgba(0,240,255,0.5);
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="hud-top">
+      <div class="hud-card">
+        <a href="index.html" class="btn-back-lobby">← VỀ SẢNH</a>
+        <div class="hud-label">SỐ DƯ</div>
+        <div class="hud-value" id="hud-balance">0</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">TIỀN CƯỢC</div>
+        <div class="hud-value" id="hud-bet">10k</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">HỆ SỐ THƯỞNG</div>
+        <div class="hud-value" id="hud-mult">x1.00</div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-label">ĐẶT CƯỢC (VNĐ)</div>
+        <div class="bet-presets">
+          <button class="btn-preset active" onclick="setBet(10000, this)">10k</button>
+          <button class="btn-preset" onclick="setBet(50000, this)">50k</button>
+          <button class="btn-preset" onclick="setBet(100000, this)">100k</button>
+          <button class="btn-preset" onclick="setBet(500000, this)">500k</button>
+          <button class="btn-preset btn-allin" onclick="setBet('ALLIN', this)">ALL IN</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">ĐIỀU CHỈNH TỐC ĐỘ</div>
+        <div class="speed-selector">
+          <button class="btn-speed active" onclick="setSpeed(1, this)">x1</button>
+          <button class="btn-speed" onclick="setSpeed(2, this)">x2</button>
+          <button class="btn-speed" onclick="setSpeed(3, this)">x3</button>
+          <button class="btn-speed" onclick="setSpeed(4, this)">x4</button>
+        </div>
+      </div>
+
+      <button class="btn-main" id="btn-action" onclick="handleAction()">CẤT CÁNH</button>
+    </div>
+
+    <div class="modal-overlay" id="result-modal">
+      <div class="modal-card">
+        <div class="modal-title" id="modal-title">HẠ CÁNH AN TOÀN!</div>
+        <div id="modal-desc" style="color: #aaa; font-size: 13px;">Đã trừ 30% thuế sân bay</div>
+        <div class="modal-amount" id="modal-amount">+50k</div>
+        <button class="btn-restart" onclick="closeModal()">TIẾP TỤC</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let balance = localStorage.getItem('sunbip_balance') !== null ? parseFloat(localStorage.getItem('sunbip_balance')) : 100000;
+    let betAmount = 10000;
+    let isAllIn = false;
+    let currentMult = 1.0;
+    let gameSpeed = 1;
+    let gameState = 'IDLE';
+
+    let plane = { x: 100, y: 0, vx: 0, vy: 0, angle: 0, gravity: 0.12 };
+    let cameraX = 0;
+    let seaLevel = 0;
+
+    let carriers = [];
+    let items = [];
+    let hazards = [];
+    let particles = [];
+    let floatingTexts = [];
+    let bgParticles = [];
+
+    let launchTimer = 0;
+    let nextSpawnX = 600;
+    let isRiggedRound = false;
+    let globalTime = 0;
+
+    function saveBalance() {
+      localStorage.setItem('sunbip_balance', balance);
+    }
+
+    function formatMoney(num) {
+      if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+      if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+      return Math.floor(num).toString();
+    }
+
+    function updateHUD() {
+      if (isAllIn) {
+        betAmount = Math.max(0, balance);
+      }
+      document.getElementById('hud-balance').innerText = formatMoney(balance);
+      document.getElementById('hud-bet').innerText = isAllIn ? formatMoney(betAmount) + ' (ALL IN)' : formatMoney(betAmount);
+      document.getElementById('hud-mult').innerText = 'x' + currentMult.toFixed(2);
+      saveBalance();
+    }
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      seaLevel = canvas.height - 90;
+      if (gameState === 'IDLE') {
+        plane.y = seaLevel - 35;
+        plane.x = 100;
+      }
+      initBgParticles();
+    }
+
+    function initBgParticles() {
+      bgParticles = [];
+      for (let i = 0; i < 40; i++) {
+        bgParticles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * (seaLevel - 50),
+          size: Math.random() * 2 + 1,
+          speed: Math.random() * 0.5 + 0.2
+        });
+      }
+    }
+
+    function setBet(amt, btn) {
+      if (gameState !== 'IDLE') return;
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (amt === 'ALLIN') {
+        isAllIn = true;
+        betAmount = Math.max(0, balance);
+      } else {
+        isAllIn = false;
+        betAmount = amt;
+      }
+      updateHUD();
+    }
+
+    function setSpeed(spd, btn) {
+      gameSpeed = spd;
+      document.querySelectorAll('.btn-speed').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function generateWorldSegment(targetX) {
+      while (nextSpawnX < targetX) {
+        carriers.push({ x: nextSpawnX, w: 180 });
+
+        for (let j = 0; j < 4; j++) {
+          const ix = nextSpawnX - 350 + j * 90;
+          const iy = Math.max(80, seaLevel - 120 - Math.random() * 250);
+          const rand = Math.random();
+          if (rand < 0.4) {
+            items.push({ x: ix, y: iy, type: 'MULT_POS', val: 0.4, text: '+x0.4', active: true });
+          } else if (rand < 0.6) {
+            items.push({ x: ix, y: iy, type: 'MULT_HIGH', val: 0.8, text: '+x0.8', active: true });
+          } else {
+            items.push({ x: ix, y: iy, type: 'MULT_NEG', val: -0.4, text: '-x0.4', active: true });
+          }
+        }
+
+        if (Math.random() < 0.6) {
+          hazards.push({
+            x: nextSpawnX - 200, y: 70,
+            w: 160, h: seaLevel - 150,
+            type: 'STORM'
+          });
+        }
+
+        nextSpawnX += isRiggedRound ? (750 + Math.random() * 300) : (500 + Math.random() * 200);
+      }
+    }
+
+    function resetWorld() {
+      carriers = [{ x: 50, w: 220 }];
+      items = [];
+      hazards = [];
+      particles = [];
+      floatingTexts = [];
+      nextSpawnX = 600;
+      generateWorldSegment(3500);
+    }
+
+    function initGame() {
+      if (isAllIn) {
+        betAmount = balance;
+      }
+      if (balance <= 0 || balance < betAmount) {
+        alert('Số dư không đủ! Vui lòng nạp thêm tiền ở sảnh chính.');
+        return;
+      }
+
+      balance -= betAmount;
+      currentMult = 1.0;
+      gameState = 'FLYING';
+      launchTimer = 1.2;
+
+      isRiggedRound = Math.random() >= 0.15;
+
+      plane = { x: 100, y: seaLevel - 35, vx: 8.5, vy: -5.0, angle: -0.3, gravity: isRiggedRound ? 0.16 : 0.11 };
+      cameraX = 0;
+
+      resetWorld();
+      document.getElementById('btn-action').style.display = 'none';
+      updateHUD();
+    }
+
+    function handleAction() {
+      if (gameState === 'IDLE') initGame();
+    }
+
+    function spawnFloatingText(text, x, y, color) {
+      floatingTexts.push({ text, x, y, opacity: 1, color });
+    }
+
+    function spawnParticles(x, y, color, count = 8) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 7,
+          vy: (Math.random() - 0.5) * 7,
+          life: 1.0, color
+        });
+      }
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    resetWorld();
+    updateHUD();
+
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const realDt = Math.min(0.033, (now - lastTime) / 1000);
+      const dt = realDt * gameSpeed;
+      lastTime = now;
+      globalTime += dt;
+
+      if (gameState === 'FLYING') {
+        if (launchTimer > 0) {
+          launchTimer -= dt;
+          plane.vy = -3.8;
+          plane.vx = 9.0;
+        } else {
+          plane.vy += plane.gravity * gameSpeed;
+        }
+
+        const minHeight = 60;
+        if (plane.y < minHeight) {
+          plane.y = minHeight;
+          if (plane.vy < 0) plane.vy = 0;
+        }
+
+        plane.x += plane.vx * gameSpeed;
+        plane.y += plane.vy * gameSpeed;
+        plane.angle = Math.atan2(plane.vy, plane.vx);
+        cameraX = plane.x - 150;
+
+        const cosA = Math.cos(plane.angle);
+        const sinA = Math.sin(plane.angle);
+        const ex1X = plane.x + (-28 * cosA - (-12) * sinA);
+        const ex1Y = plane.y + (-28 * sinA + (-12) * cosA);
+        const ex2X = plane.x + (-28 * cosA - (12) * sinA);
+        const ex2Y = plane.y + (-28 * sinA + (12) * cosA);
+
+        spawnParticles(ex1X, ex1Y, '#00f0ff', 1);
+        spawnParticles(ex1X, ex1Y, '#ff00aa', 1);
+        spawnParticles(ex2X, ex2Y, '#00f0ff', 1);
+        spawnParticles(ex2X, ex2Y, '#ff00aa', 1);
+
+        if (plane.x + 2500 > nextSpawnX) {
+          generateWorldSegment(plane.x + 3500);
+        }
+
+        hazards.forEach(h => {
+          if (plane.x >= h.x && plane.x <= h.x + h.w && plane.y >= h.y && plane.y <= h.y + h.h) {
+            plane.vy += 0.25 * gameSpeed;
+            currentMult = Math.max(0.1, currentMult - 0.005 * gameSpeed);
+            spawnParticles(plane.x, plane.y, '#ff0055', 2);
+            updateHUD();
+          }
+        });
+
+        items.forEach(it => {
+          if (!it.active) return;
+          const dist = Math.hypot(plane.x - it.x, plane.y - it.y);
+          if (dist < 35) {
+            it.active = false;
+            if (it.val < 0) {
+              currentMult = Math.max(0.1, currentMult + it.val);
+              plane.vy += 3.5;
+              spawnParticles(it.x, it.y, '#ff0055', 18);
+              spawnFloatingText('-' + formatMoney(betAmount * Math.abs(it.val)), plane.x, plane.y - 20, '#ff0055');
+            } else {
+              currentMult += it.val;
+              plane.vy = -3.5;
+              spawnParticles(it.x, it.y, '#00ff88', 18);
+              spawnFloatingText('+' + formatMoney(betAmount * it.val), plane.x, plane.y - 20, '#00ff88');
+            }
+            updateHUD();
+          }
+        });
+
+        carriers.forEach((c, idx) => {
+          if (idx === 0) return;
+          if (plane.x >= c.x && plane.x <= c.x + c.w) {
+            if (Math.abs(plane.y - (seaLevel - 28)) < 16 && plane.vy > 0) {
+              endGame(true);
+            }
+          }
+        });
+
+        if (plane.y >= seaLevel) {
+          spawnParticles(plane.x, seaLevel, '#00f0ff', 30);
+          endGame(false);
+        }
+      }
+
+      particles.forEach((p, i) => {
+        p.x += p.vx * gameSpeed; p.y += p.vy * gameSpeed; p.life -= 0.03 * gameSpeed;
+        if (p.life <= 0) particles.splice(i, 1);
+      });
+
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function endGame(win) {
+      gameState = 'ENDED';
+      const modal = document.getElementById('result-modal');
+      const title = document.getElementById('modal-title');
+      const desc = document.getElementById('modal-desc');
+      const amount = document.getElementById('modal-amount');
+
+      modal.classList.add('active');
+      if (win) {
+        const winCash = Math.floor(betAmount * currentMult * 0.7);
+        balance += winCash;
+        title.className = 'modal-title win';
+        title.innerText = 'HẠ CÁNH AN TOÀN!';
+        desc.innerText = 'Đã trừ 30% thuế sân bay';
+        amount.innerText = '+' + formatMoney(winCash);
+        amount.style.color = '#00ff88';
+      } else {
+        title.className = 'modal-title lose';
+        title.innerText = 'MÁY BAY RỚT BIỂN!';
+        desc.innerText = 'Bạn đã mất toàn bộ tiền cược ván này';
+        amount.innerText = '-' + formatMoney(betAmount);
+        amount.style.color = '#ff0055';
+      }
+      updateHUD();
+    }
+
+    function closeModal() {
+      document.getElementById('result-modal').classList.remove('active');
+      document.getElementById('btn-action').style.display = 'block';
+      gameState = 'IDLE';
+      plane.y = seaLevel - 35;
+      plane.x = 100;
+      cameraX = 0;
+      resetWorld();
+    }
+
+    function renderStealthJet(x, y, angle) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      [-12, 12].forEach(offY => {
+        const flameGrad = ctx.createLinearGradient(-25, offY, -55, offY);
+        flameGrad.addColorStop(0, '#00f0ff');
+        flameGrad.addColorStop(0.3, '#ff00ff');
+        flameGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = flameGrad;
+        ctx.beginPath();
+        ctx.moveTo(-25, offY - 4);
+        ctx.lineTo(-55 + Math.sin(globalTime * 30) * 5, offY);
+        ctx.lineTo(-25, offY + 4);
+        ctx.closePath();
+        ctx.fill();
+      });
+
+      const wingGradLeft = ctx.createLinearGradient(0, -35, 0, 0);
+      wingGradLeft.addColorStop(0, '#00f0ff');
+      wingGradLeft.addColorStop(1, '#090e1a');
+      ctx.fillStyle = wingGradLeft;
+      ctx.strokeStyle = '#00f0ff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(10, -5); ctx.lineTo(-15, -38); ctx.lineTo(-28, -32); ctx.lineTo(-18, -8);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      const wingGradRight = ctx.createLinearGradient(0, 35, 0, 0);
+      wingGradRight.addColorStop(0, '#00f0ff');
+      wingGradRight.addColorStop(1, '#090e1a');
+      ctx.fillStyle = wingGradRight;
+      ctx.beginPath();
+      ctx.moveTo(10, 5); ctx.lineTo(-15, 38); ctx.lineTo(-28, 32); ctx.lineTo(-18, 8);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      const bodyGrad = ctx.createLinearGradient(45, 0, -30, 0);
+      bodyGrad.addColorStop(0, '#1e293b'); bodyGrad.addColorStop(0.5, '#0f172a'); bodyGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = bodyGrad; ctx.strokeStyle = '#7000ff'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(45, 0); ctx.lineTo(20, -10); ctx.lineTo(-25, -14); ctx.lineTo(-32, -6); ctx.lineTo(-26, 0); ctx.lineTo(-32, 6); ctx.lineTo(-25, 14); ctx.lineTo(20, 10);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = '#00f0ff'; ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(45, 0); ctx.lineTo(-15, -6); ctx.moveTo(45, 0); ctx.lineTo(-15, 6);
+      ctx.moveTo(20, -10); ctx.lineTo(5, 0); ctx.lineTo(20, 10);
+      ctx.stroke();
+
+      const cockpitGrad = ctx.createLinearGradient(25, 0, 5, 0);
+      cockpitGrad.addColorStop(0, '#ff00ff'); cockpitGrad.addColorStop(0.5, '#00f0ff'); cockpitGrad.addColorStop(1, 'rgba(0, 240, 255, 0.2)');
+      ctx.fillStyle = cockpitGrad; ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 15;
+      ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(12, -5); ctx.lineTo(0, 0); ctx.lineTo(12, 5); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+
+      const blink = (Math.floor(globalTime * 10) % 2 === 0);
+      ctx.fillStyle = blink ? '#ff0055' : '#00ff88';
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 10;
+      ctx.fillRect(-28, -34, 4, 4); ctx.fillRect(-28, 30, 4, 4); ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      skyGrad.addColorStop(0, '#030509'); skyGrad.addColorStop(0.5, '#0a0d1a'); skyGrad.addColorStop(1, '#120524');
+      ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.4)';
+      bgParticles.forEach(p => {
+        let px = (p.x - cameraX * p.speed) % canvas.width;
+        if (px < 0) px += canvas.width;
+        ctx.fillRect(px, p.y, p.size, p.size);
+      });
+
+      ctx.strokeStyle = 'rgba(112, 0, 255, 0.15)'; ctx.lineWidth = 1;
+      const gridOffset = (cameraX * 0.5) % 40;
+      for (let x = -gridOffset; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, seaLevel); ctx.stroke();
+      }
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      hazards.forEach(h => {
+        if (h.x + h.w < cameraX - 100) return;
+        ctx.fillStyle = 'rgba(255, 0, 85, 0.14)';
+        ctx.fillRect(h.x, h.y, h.w, h.h);
+        ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(h.x, h.y, h.w, h.h);
+      });
+
+      carriers.forEach(c => {
+        if (c.x + c.w < cameraX - 200) return;
+        ctx.fillStyle = '#0f172a'; ctx.fillRect(c.x, seaLevel - 25, c.w, 25);
+        ctx.fillStyle = '#00f0ff'; ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 12;
+        ctx.fillRect(c.x + 10, seaLevel - 27, c.w - 20, 4);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#ff0055';
+        ctx.fillRect(c.x + c.w - 20, seaLevel - 36, 6, 7);
+      });
+
+      ctx.fillStyle = '#0284c7'; ctx.fillRect(cameraX, seaLevel, canvas.width, canvas.height - seaLevel);
+      ctx.fillStyle = '#00f0ff'; ctx.shadowColor = '#00f0ff'; ctx.shadowBlur = 8;
+      ctx.fillRect(cameraX, seaLevel, canvas.width, 3);
+      ctx.shadowBlur = 0;
+
+      items.forEach(it => {
+        if (!it.active || it.x < cameraX - 100) return;
+        const isNeg = it.val < 0;
+        const color = isNeg ? '#ff0055' : '#00ff88';
+
+        ctx.beginPath();
+        ctx.arc(it.x, it.y, 18, 0, Math.PI * 2);
+        ctx.fillStyle = isNeg ? 'rgba(255, 0, 85, 0.25)' : 'rgba(0, 255, 136, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.save();
+        ctx.translate(it.x, it.y);
+        ctx.rotate(globalTime * 3);
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.strokeRect(-22, -22, 44, 44);
+        ctx.restore();
+
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(it.text, it.x, it.y + 4);
+      });
+
+      renderStealthJet(plane.x, plane.y, plane.angle);
+
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life;
+        ctx.fillRect(p.x, p.y, 3, 3);
+        ctx.globalAlpha = 1.0;
+      });
+
+      floatingTexts.forEach((ft, i) => {
+        ctx.fillStyle = ft.color;
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ft.y -= 1 * gameSpeed; ft.opacity -= 0.02 * gameSpeed;
+        if (ft.opacity <= 0) floatingTexts.splice(i, 1);
+      });
+
+      ctx.restore();
+    }
+
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
