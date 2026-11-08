@@ -33,7 +33,7 @@
     .btn-back-lobby:hover { background: rgba(0, 240, 255, 0.2); }
 
     .control-panel {
-      position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%);
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
       width: 92%; max-width: 720px; background: rgba(8, 14, 26, 0.94);
       border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 18px;
       padding: 12px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
@@ -203,7 +203,8 @@
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      seaLevel = canvas.height - 90;
+      // Nâng mức biển lên cao hơn (cách đáy 160px) để khoảng không gian phía trên rộng rãi, không bị menu che khuất
+      seaLevel = canvas.height - 160;
       if (gameState === 'IDLE') {
         plane.y = seaLevel - 35;
         plane.x = 100;
@@ -250,7 +251,7 @@
 
         for (let j = 0; j < 4; j++) {
           const ix = nextSpawnX - 350 + j * 90;
-          const iy = Math.max(80, seaLevel - 120 - Math.random() * 250);
+          const iy = Math.max(60, seaLevel - 100 - Math.random() * 200);
           const rand = Math.random();
           if (rand < 0.4) {
             items.push({ x: ix, y: iy, type: 'MULT_POS', val: 0.4, text: '+x0.4', active: true });
@@ -263,8 +264,8 @@
 
         if (Math.random() < 0.6) {
           hazards.push({
-            x: nextSpawnX - 200, y: 70,
-            w: 160, h: seaLevel - 150,
+            x: nextSpawnX - 200, y: 50,
+            w: 160, h: seaLevel - 120,
             type: 'STORM'
           });
         }
@@ -347,7 +348,7 @@
           plane.vy += plane.gravity * gameSpeed;
         }
 
-        const minHeight = 60;
+        const minHeight = 40;
         if (plane.y < minHeight) {
           plane.y = minHeight;
           if (plane.vy < 0) plane.vy = 0;
@@ -618,4 +619,4 @@
     requestAnimationFrame(gameLoop);
   </script>
 </body>
-</html></html>
+</html>
