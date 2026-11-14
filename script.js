@@ -194,10 +194,11 @@ function triggerLockAndShake() {
   }, 1500);
 }
 
+// Tỷ lệ chuẩn 50% - 50%
 function rollDiceStrictBip() {
   let targetOutcome = null;
   if (isBetConfirmed) {
-    targetOutcome = (Math.random() >= 0.05) ? ((betSide === 'Tài') ? 'Xỉu' : 'Tài') : betSide;
+    targetOutcome = (Math.random() < 0.5) ? betSide : ((betSide === 'Tài') ? 'Xỉu' : 'Tài');
   }
 
   do {
